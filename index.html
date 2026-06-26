@@ -3,244 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>環境計測モニター - 山本8号</title>
+    <title>環境計測HUD - 山本8号</title>
     <style>
-        /* すべての要素でボックスサイズを共通化 */
-        *, *::before, *::after {
-            box-sizing: border-box;
+        /* --- 近未来・HUD風デザインの定義 --- */
+        :root {
+            /* 基本色：サイバーブルーと完全な黒 */
+            --bg-color: #000000;
+            --main-color: #00f2fe; /* 鮮やかなネオンブルー */
+            --sub-color: #4facfe;
+            --text-main: #ffffff;
+            --text-sub: #888888;
+            
+            /* WBGT状態別の色（初期：青） */
+            --wbgt-color: #4facfe;
+            --wbgt-glow: rgba(79, 172, 254, 0.5);
+            
+            /* カードの統一設定 */
+            --card-size-vmin: 28vmin; /* 正方形カードのサイズ */
         }
 
-        /* 画面全体のスタイル（黒背景・白文字・スクロールバー非表示） */
+        *, *::before, *::after { box-sizing: border-box; }
+
         body {
-            background-color: #000000;
-            color: #ffffff;
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Exo 2', 'Helvetica Neue', Arial, sans-serif; /* 少しフューチャー感のあるフォント */
             margin: 0;
             padding: 0;
             width: 100vw;
             height: 100vh;
             overflow: hidden;
-            display: block;
+            display: flex;
+            flex-direction: column;
+            cursor: none; /* マウスカーソルを非表示（サイネージ用） */
         }
 
-        /* 全画面を均等、または最適に配置するためのテーブルレイアウト風コンテナ */
-        .main-container {
-            display: table;
-            width: 100%;
-            height: 100%;
-            padding: 2vmin;
+        /* --- 背景の発光エフェクト（寂しさを解消） --- */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 10% 10%, rgba(0, 242, 254, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(79, 172, 254, 0.1) 0%, transparent 40%);
+            z-index: -1;
         }
 
-        /* ヘッダーエリア（拠点名とデータ日時） */
-        .header-row {
-            display: table-row;
-            height: 10%;
+        /* ヘッダー：拠点名と日時 */
+        header {
+            height: 8vh;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 4vmin;
+            border-bottom: 1px solid rgba(0, 242, 254, 0.3);
+            background: rgba(0, 0, 0, 0.5);
         }
-        .header-content {
-            display: table-cell;
-            vertical-align: middle;
-            text-align: center;
-            border-bottom: 2px solid #333333;
+
+        .site-name-area {
+            display: flex;
+            align-items: center;
+            gap: 1.5vmin;
         }
-        .site-name {
-            font-size: 4vmin;
+
+        .hud-ico {
+            color: var(--main-color);
             font-weight: bold;
-            display: inline-block;
-            margin-right: 3vmin;
-        }
-        .update-time {
-            font-size: 2.5vmin;
-            color: #aaaaaa;
-            display: inline-block;
+            font-size: 3vmin;
         }
 
-        /* メインデータエリア */
-        .content-row {
-            display: table-row;
-            height: 90%;
-        }
-        .content-content {
-            display: table-cell;
-            vertical-align: middle;
-            padding-top: 2vmin;
+        .site-name {
+            font-size: 3.5vmin;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
-        /* グリッド風にデータを並べる（どんな解像度でも回り込んでフィット） */
-        .grid-container {
-            display: block;
-            text-align: center;
-            width: 100%;
+        .date-area {
+            text-align: right;
+            font-size: 2.2vmin;
+            color: var(--text-sub);
         }
 
-        /* 各データボックスの共通デザイン */
-        .data-card {
-            display: inline-block;
-            vertical-align: top;
-            width: 29%;
-            margin: 1.5%;
-            border: 2px solid #ffffff;
-            border-radius: 12px;
+        /* メインコンテンツ（Flexで中央配置） */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             padding: 2vmin;
-            text-align: center;
-            background-color: #050505;
         }
 
-        /* WBGT（暑さ指数）を目立たせるための専用スタイル */
-        .data-card.highlight {
-            border: 4px solid #ffcc00;
-            width: 32%;
-            margin: 1.5%;
+        /* --- 最重要：WBGT専用エリア（画面上部に大きく） --- */
+        #wbgt-zone {
+            width: 90%;
+            margin-bottom: 3vmin;
+            padding: 2vmin;
+            border: 2px solid var(--wbgt-color);
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 20px var(--wbgt-glow); /* ネオン発光 */
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            transition: all 0.5s ease; /* 色変化を滑らかに */
+        }
+
+        .wbgt-main-label {
+            font-size: 3vmin;
+            color: var(--wbgt-color);
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--wbgt-glow);
+        }
+
+        .wbgt-value-area {
+            text-align: center;
+        }
+
+        .wbgt-value {
+            font-size: 12vmin;
+            font-weight: bold;
+            line-height: 1;
+            color: var(--text-main);
+        }
+
+        .wbgt-unit { font-size: 4vmin; margin-left: -1vmin; }
+
+        .wbgt-status-area {
+            text-align: center;
+            min-width: 30%;
+        }
+
+        .wbgt-status {
+            font-size: 6vmin;
+            font-weight: bold;
+            color: var(--wbgt-color);
+            border-bottom: 3px solid var(--wbgt-color);
+            padding-bottom: 1vmin;
+        }
+
+        /* --- データカードのグリッドレイアウト（完全に統一） --- */
+        .grid-container {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 3vmin; /* カード間の余白 */
+        }
+
+        /* すべてのカードを全く同じ正方形に統一 */
+        .data-card {
+            width: var(--card-size-vmin);
+            height: var(--card-size-vmin);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 2vmin;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            transition: border 0.3s ease;
+        }
+        
+        /* HUD風の角の装飾 */
+        .data-card::before, .data-card::after {
+            content: ""; position: absolute; width: 10px; height: 10px;
+            border-color: rgba(0, 242, 254, 0.5); border-style: solid;
+        }
+        .data-card::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+        .data-card::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+        /* カード上部：ラベルとアイコン */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-sub);
         }
 
         .card-label {
-            font-size: 2.5vmin;
-            color: #cccccc;
-            margin-bottom: 1vmin;
+            font-size: 2.2vmin;
             font-weight: bold;
+        }
+
+        .card-ico-mini {
+            font-size: 2.5vmin;
+            color: rgba(0, 242, 254, 0.5);
+        }
+
+        /* カード中央：メインの数値（フォントサイズを枠内に自動収める） */
+        .card-value-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--main-color);
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
         }
 
         .card-value {
-            font-size: 7vmin;
+            font-size: 7vmin; /* 統一 */
             font-weight: bold;
-            line-height: 1.1;
         }
 
-        /* WBGT専用の値サイズ */
-        .highlight .card-value {
-            font-size: 9vmin;
-        }
-
-        .card-unit {
-            font-size: 3vmin;
+        .card-unit-mini {
+            font-size: 2.5vmin;
             margin-left: 0.5vmin;
-            font-weight: normal;
+            vertical-align: bottom;
         }
 
-        .card-status {
-            font-size: 3vmin;
-            margin-top: 1vmin;
-            color: #ffcc00;
-            font-weight: bold;
+        /* カード下部：サブ情報 */
+        .card-footer {
+            height: 3vmin;
+            font-size: 2vmin;
+            color: var(--text-sub);
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 0.5vmin;
         }
 
-        /* バッテリー等のサブ情報 */
-        .footer-info {
-            position: absolute;
-            bottom: 10px;
-            right: 20px;
-            font-size: 1.8vmin;
-            color: #555555;
+        /* サブゲージ（雨量用など） */
+        .sub-gauge-bg {
+            width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px; overflow: hidden; margin-top: 1vmin;
         }
+        .sub-gauge-bar {
+            height: 100%; background: var(--main-color); width: 0%;
+            transition: width 0.5s ease;
+        }
+
     </style>
 </head>
 <body>
 
-<div class="main-container">
-    <div class="header-row">
-        <div class="header-content">
-            <span class="site-name" id="txt-site-name">--</span>
-            <span class="update-time">データ日時: <span id="txt-date">----/--/-- --:--:--</span></span>
+<header>
+    <div class="site-name-area">
+        <span class="hud-ico">[-SYS-]</span>
+        <span class="site-name" id="txt-site-name">SUMINOE #8</span>
+    </div>
+    <div class="date-area">
+        <div id="txt-date-ymd">----.--.--</div>
+        <div id="txt-date-hms" style="font-weight:bold; color:var(--text-main); font-size:2.5vmin;">--:--:--</div>
+    </div>
+</header>
+
+<main>
+    <div id="wbgt-zone">
+        <div class="wbgt-main-label">暑さ指数<br>WBGT</div>
+        <div class="wbgt-value-area">
+            <span class="wbgt-value" id="val-wbgt">--</span><span class="wbgt-unit">℃</span>
+        </div>
+        <div class="wbgt-status-area">
+            <span class="wbgt-status" id="val-wbgt-str">--</span>
         </div>
     </div>
 
-    <div class="content-row">
-        <div class="content-content">
-            <div class="grid-container">
-                
-                <div class="data-card highlight">
-                    <div class="card-label">暑さ指数 (WBGT)</div>
-                    <div class="card-value" id="val-wbgt">--</div>
-                    <div class="card-status" id="val-wbgt-str">--</div>
-                </div>
+    <div class="grid-container">
+        
+        <div class="data-card">
+            <div class="card-header"><span class="card-label">気温</span><span class="card-ico-mini">temp</span></div>
+            <div class="card-value-area"><span class="card-value" id="val-temp">--.-</span><span class="card-unit-mini">℃</span></div>
+            <div class="card-footer"></div>
+        </div>
 
-                <div class="data-card">
-                    <div class="card-label">気温</div>
-                    <div class="card-value"><span id="val-temp">--.-</span><span class="card-unit">℃</span></div>
-                </div>
+        <div class="data-card">
+            <div class="card-header"><span class="card-label">湿度</span><span class="card-ico-mini">humi</span></div>
+            <div class="card-value-area"><span class="card-value" id="val-humi">--</span><span class="card-unit-mini">%</span></div>
+            <div class="card-footer"></div>
+        </div>
 
-                <div class="data-card">
-                    <div class="card-label">湿度</div>
-                    <div class="card-value"><span id="val-humi">--</span><span class="card-unit">%</span></div>
-                </div>
+        <div class="data-card">
+            <div class="card-header"><span class="card-label">風速・風向</span><span class="card-ico-mini">wind</span></div>
+            <div class="card-value-area">
+                <span class="card-value" id="val-wind-speed" style="font-size:6.5vmin;">--.-</span><span class="card-unit-mini">m/s</span>
+            </div>
+            <div class="card-footer" id="val-wind-dir">(--)</div>
+        </div>
 
-                <div class="data-card">
-                    <div class="card-label">風速 (風向)</div>
-                    <div class="card-value">
-                        <span id="val-wind-speed">--.-</span><span class="card-unit">m/s</span>
-                    </div>
-                    <div class="card-status" id="val-wind-dir" style="color:#ffffff;">(--)</div>
-                </div>
-
-                <div class="data-card">
-                    <div class="card-label">時間雨量</div>
-                    <div class="card-value"><span id="val-rain-1h">--.-</span><span class="card-unit">mm/h</span></div>
-                </div>
-
-                <div class="data-card">
-                    <div class="card-label">現地気圧</div>
-                    <div class="card-value"><span id="val-atmos">----</span><span class="card-unit">hPa</span></div>
-                </div>
-
+        <div class="data-card">
+            <div class="card-header"><span class="card-label">時間雨量</span><span class="card-ico-mini">rain</span></div>
+            <div class="card-value-area">
+                <span class="card-value" id="val-rain-1h" style="font-size:6.5vmin;">--.-</span><span class="card-unit-mini">mm/h</span>
+            </div>
+            <div class="card-footer">
+                <div class="sub-gauge-bg"><div class="sub-gauge-bar" id="bar-rain"></div></div>
             </div>
         </div>
-    </div>
-</div>
 
-<div class="footer-info">
-    電圧: <span id="val-voltage">--.-</span>V
-</div>
+        <div class="data-card">
+            <div class="card-header"><span class="card-label">現地気圧</span><span class="card-ico-mini">baro</span></div>
+            <div class="card-value-area"><span class="card-value" id="val-atmos" style="font-size:6vmin;">----</span><span class="card-unit-mini">hPa</span></div>
+            <div class="card-footer"></div>
+        </div>
+
+        <div class="data-card" style="border-color: rgba(255,255,255,0.05);">
+            <div class="card-header"><span class="card-label">SYSTEM</span><span class="card-ico-mini">pwr</span></div>
+            <div class="card-value-area"><span class="card-value" id="val-voltage" style="color:var(--text-sub); font-size:6vmin;">--.-</span><span class="card-unit-mini" style="color:var(--text-sub);">V</span></div>
+            <div class="card-footer">電源電圧</div>
+        </div>
+
+    </div>
+</main>
 
 <script>
-    // 日付フォーマット変換 (20260626184040 -> 2026/06/26 18:40:40)
-    function formatTargetDate(str) {
-        if(!str || str.length !== 14) return str;
-        return `${str.substring(0,4)}/${str.substring(4,6)}/${str.substring(6,8)} ${str.substring(8,10)}:${str.substring(10,12)}:${str.substring(12,14)}`;
+    // --- 日付フォーマット変換 ---
+    function parseDate(str) {
+        if(!str || str.length !== 14) return { ymd: '----.--.--', hms: '--:--:--' };
+        return {
+            ymd: `${str.substring(0,4)}.${str.substring(4,6)}.${str.substring(6,8)}`,
+            hms: `${str.substring(8,10)}:${str.substring(10,12)}:${str.substring(12,14)}`
+        };
     }
 
-    // データの取得と画面への反映
+    // --- WBGTの状態によって色を決定する関数 ---
+    function setWbgtStyle(statusStr) {
+        const root = document.documentElement;
+        if (!statusStr) return;
+
+        if (statusStr.includes('危険')) {
+            // 赤
+            root.style.setProperty('--wbgt-color', '#ff0055');
+            root.style.setProperty('--wbgt-glow', 'rgba(255, 0, 85, 0.6)');
+        } else if (statusStr.includes('警戒')) {
+            // 黄・オレンジ
+            root.style.setProperty('--wbgt-color', '#ffcc00');
+            root.style.setProperty('--wbgt-glow', 'rgba(255, 204, 0, 0.5)');
+        } else {
+            // 安全・注意（青）
+            root.style.setProperty('--wbgt-color', '#4facfe');
+            root.style.setProperty('--wbgt-glow', 'rgba(79, 172, 254, 0.5)');
+        }
+    }
+
+    // --- データの取得と画面への反映 ---
     async function refreshData() {
         try {
-            // ブラウザキャッシュを防ぐためタイムスタンプを付与して data.json を読み込む
             const response = await fetch('./data.json?_t=' + Date.now());
             if (!response.ok) throw new Error('ネットワークエラー');
-            
             const json = await response.json();
-            
-            // JSONの階層が深いため、安全にアクセスするための参照を作成
             const term = json.term && json.term[0];
             if (!term) return;
-            
             const latestData = term.data && term.data[0];
             if (!latestData) return;
-            
             const sens = latestData.sensu15xx;
 
-            // 画面要素にマッピング
-            document.getElementById('txt-site-name').innerText = term.name || '計測拠点';
-            document.getElementById('txt-date').innerText = formatTargetDate(latestData.date);
+            // --- ヘッダー情報の反映 ---
+            document.getElementById('txt-site-name').innerText = term.name || '拠点不明';
+            const dateObj = parseDate(latestData.date);
+            document.getElementById('txt-date-ymd').innerText = dateObj.ymd;
+            document.getElementById('txt-date-hms').innerText = dateObj.hms;
             
+            // --- WBGTの反映（色変化付き） ---
             if (sens) {
                 document.getElementById('val-wbgt').innerText = sens.wbgt !== undefined ? sens.wbgt : '--';
                 document.getElementById('val-wbgt-str').innerText = sens.wbgt_str || '--';
+                // 状態文字列に応じて色を変える
+                setWbgtStyle(sens.wbgt_str);
+
+                // --- 各カードの反映 ---
                 document.getElementById('val-temp').innerText = sens.temp !== undefined ? sens.temp.toFixed(1) : '--.-';
                 document.getElementById('val-humi').innerText = sens.humi !== undefined ? sens.humi : '--';
+                
+                // 風向・風速
                 document.getElementById('val-wind-speed').innerText = sens.wind_speed !== undefined ? sens.wind_speed.toFixed(1) : '--.-';
-                document.getElementById('val-wind-dir').innerText = sens.wind_dir_str ? `風向: ${sens.wind_dir_str}` : '(--)';
-                document.getElementById('val-rain-1h').innerText = sens.rain_1h !== undefined ? sens.rain_1h.toFixed(1) : '--.-';
+                document.getElementById('val-wind-dir').innerText = sens.wind_dir_str ? sens.wind_dir_str : '(--)';
+
+                // 雨量（ゲージ付き）
+                const rainVal = sens.rain_1h !== undefined ? sens.rain_1h : 0;
+                document.getElementById('val-rain-1h').innerText = rainVal.toFixed(1);
+                // 簡易ゲージ（10mm/hでMAXになる想定の比率）
+                const rainPercent = Math.min(100, (rainVal / 10) * 100);
+                document.getElementById('bar-rain').style.width = rainPercent + '%';
             }
             
             document.getElementById('val-atmos').innerText = latestData.atmos || '----';
             document.getElementById('val-voltage').innerText = latestData.power_voltage || '--.-';
 
         } catch (error) {
-            console.error('表示更新に失敗しました:', error);
+            console.error('表示更新失敗:', error);
         }
     }
 
-    // 初回実行
+    // 初回実行と30秒ごとの更新
     refreshData();
-    
-    // 画面側は30秒ごとに data.json の変化をチェック（リロードなしで滑らかに切り替わります）
     setInterval(refreshData, 30000);
 </script>
 </body>
