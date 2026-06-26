@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>環境計測モニター - 山本8号</title>
+    <style>
+        /* すべての要素でボックスサイズを共通化 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* 画面全体のスタイル（黒背景・白文字・スクロールバー非表示） */
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: block;
+        }
+
+        /* 全画面を均等、または最適に配置するためのテーブルレイアウト風コンテナ */
+        .main-container {
+            display: table;
+            width: 100%;
+            height: 100%;
+            padding: 2vmin;
+        }
+
+        /* ヘッダーエリア（拠点名とデータ日時） */
+        .header-row {
+            display: table-row;
+            height: 10%;
+        }
+        .header-content {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: center;
+            border-bottom: 2px solid #333333;
+        }
+        .site-name {
+            font-size: 4vmin;
+            font-weight: bold;
+            display: inline-block;
+            margin-right: 3vmin;
+        }
+        .update-time {
+            font-size: 2.5vmin;
+            color: #aaaaaa;
+            display: inline-block;
+        }
+
+        /* メインデータエリア */
+        .content-row {
+            display: table-row;
+            height: 90%;
+        }
+        .content-content {
+            display: table-cell;
+            vertical-align: middle;
+            padding-top: 2vmin;
+        }
+
+        /* グリッド風にデータを並べる（どんな解像度でも回り込んでフィット） */
+        .grid-container {
+            display: block;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* 各データボックスの共通デザイン */
+        .data-card {
+            display: inline-block;
+            vertical-align: top;
+            width: 29%;
+            margin: 1.5%;
+            border: 2px solid #ffffff;
+            border-radius: 12px;
+            padding: 2vmin;
+            text-align: center;
+            background-color: #050505;
+        }
+
+        /* WBGT（暑さ指数）を目立たせるための専用スタイル */
+        .data-card.highlight {
+            border: 4px solid #ffcc00;
+            width: 32%;
+            margin: 1.5%;
+        }
+
+        .card-label {
+            font-size: 2.5vmin;
+            color: #cccccc;
+            margin-bottom: 1vmin;
+            font-weight: bold;
+        }
+
+        .card-value {
+            font-size: 7vmin;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+
+        /* WBGT専用の値サイズ */
+        .highlight .card-value {
+            font-size: 9vmin;
+        }
+
+        .card-unit {
+            font-size: 3vmin;
+            margin-left: 0.5vmin;
+            font-weight: normal;
+        }
+
+        .card-status {
+            font-size: 3vmin;
+            margin-top: 1vmin;
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        /* バッテリー等のサブ情報 */
+        .footer-info {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-size: 1.8vmin;
+            color: #555555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="header-row">
+        <div class="header-content">
+            <span class="site-name" id="txt-site-name">--</span>
+            <span class="update-time">データ日時: <span id="txt-date">----/--/-- --:--:--</span></span>
+        </div>
+    </div>
+
+    <div class="content-row">
+        <div class="content-content">
+            <div class="grid-container">
+                
+                <div class="data-card highlight">
+                    <div class="card-label">暑さ指数 (WBGT)</div>
+                    <div class="card-value" id="val-wbgt">--</div>
+                    <div class="card-status" id="val-wbgt-str">--</div>
+                </div>
+
+                <div class="data-card">
+                    <div class="card-label">気温</div>
+                    <div class="card-value"><span id="val-temp">--.-</span><span class="card-unit">℃</span></div>
+                </div>
+
+                <div class="data-card">
+                    <div class="card-label">湿度</div>
+                    <div class="card-value"><span id="val-humi">--</span><span class="card-unit">%</span></div>
+                </div>
+
+                <div class="data-card">
+                    <div class="card-label">風速 (風向)</div>
+                    <div class="card-value">
+                        <span id="val-wind-speed">--.-</span><span class="card-unit">m/s</span>
+                    </div>
+                    <div class="card-status" id="val-wind-dir" style="color:#ffffff;">(--)</div>
+                </div>
+
+                <div class="data-card">
+                    <div class="card-label">時間雨量</div>
+                    <div class="card-value"><span id="val-rain-1h">--.-</span><span class="card-unit">mm/h</span></div>
+                </div>
+
+                <div class="data-card">
+                    <div class="card-label">現地気圧</div>
+                    <div class="card-value"><span id="val-atmos">----</span><span class="card-unit">hPa</span></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer-info">
+    電圧: <span id="val-voltage">--.-</span>V
+</div>
+
+<script>
+    // 日付フォーマット変換 (20260626184040 -> 2026/06/26 18:40:40)
+    function formatTargetDate(str) {
+        if(!str || str.length !== 14) return str;
+        return `${str.substring(0,4)}/${str.substring(4,6)}/${str.substring(6,8)} ${str.substring(8,10)}:${str.substring(10,12)}:${str.substring(12,14)}`;
+    }
+
+    // データの取得と画面への反映
+    async function refreshData() {
+        try {
+            // ブラウザキャッシュを防ぐためタイムスタンプを付与して data.json を読み込む
+            const response = await fetch('./data.json?_t=' + Date.now());
+            if (!response.ok) throw new Error('ネットワークエラー');
+            
+            const json = await response.json();
+            
+            // JSONの階層が深いため、安全にアクセスするための参照を作成
+            const term = json.term && json.term[0];
+            if (!term) return;
+            
+            const latestData = term.data && term.data[0];
+            if (!latestData) return;
+            
+            const sens = latestData.sensu15xx;
+
+            // 画面要素にマッピング
+            document.getElementById('txt-site-name').innerText = term.name || '計測拠点';
+            document.getElementById('txt-date').innerText = formatTargetDate(latestData.date);
+            
+            if (sens) {
+                document.getElementById('val-wbgt').innerText = sens.wbgt !== undefined ? sens.wbgt : '--';
+                document.getElementById('val-wbgt-str').innerText = sens.wbgt_str || '--';
+                document.getElementById('val-temp').innerText = sens.temp !== undefined ? sens.temp.toFixed(1) : '--.-';
+                document.getElementById('val-humi').innerText = sens.humi !== undefined ? sens.humi : '--';
+                document.getElementById('val-wind-speed').innerText = sens.wind_speed !== undefined ? sens.wind_speed.toFixed(1) : '--.-';
+                document.getElementById('val-wind-dir').innerText = sens.wind_dir_str ? `風向: ${sens.wind_dir_str}` : '(--)';
+                document.getElementById('val-rain-1h').innerText = sens.rain_1h !== undefined ? sens.rain_1h.toFixed(1) : '--.-';
+            }
+            
+            document.getElementById('val-atmos').innerText = latestData.atmos || '----';
+            document.getElementById('val-voltage').innerText = latestData.power_voltage || '--.-';
+
+        } catch (error) {
+            console.error('表示更新に失敗しました:', error);
+        }
+    }
+
+    // 初回実行
+    refreshData();
+    
+    // 画面側は30秒ごとに data.json の変化をチェック（リロードなしで滑らかに切り替わります）
+    setInterval(refreshData, 30000);
+</script>
+</body>
+</html>
