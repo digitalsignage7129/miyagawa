@@ -7,15 +7,15 @@
       "data_intr_time": 600,
       "data": [
         {
-          "date": "20260824062412",
+          "date": "20260824064412",
           "power_voltage": "12.0",
           "sensu15xx": {
-            "temp": 25.3,
+            "temp": 27.1,
             "cumtemp": 3606.4,
-            "humi": 86.0,
-            "uv": 49,
+            "humi": 79.0,
+            "uv": 85,
             "uvi": 0,
-            "illumi": 6374.0,
+            "illumi": 11252.0,
             "rain": 0.0,
             "rain_1h": 0.0,
             "rain_24h": 0.0,
@@ -24,8 +24,8 @@
             "wind_dir_str": "西",
             "wind_speed": 0.0,
             "max_wind_speed": 0.5,
-            "wbgt": 24,
-            "wbgt_str": "注意"
+            "wbgt": 26,
+            "wbgt_str": "警戒"
           },
           "atmos": 999,
           "sea_level_pressure": 1015
